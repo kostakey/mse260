@@ -2,28 +2,16 @@ from pymatgen.core import Structure
 import numpy as np
 
 def load_cif(cif_file, supercell=(2,2,2)):
-    """
-    Load a CIF and expand to supercell.
-
-    Returns:
-        positions (Nx3 np.array)
-        atom_types (Nx1 array of integers)
-        species_list (list of species strings)
-    """
+    
     structure = Structure.from_file(cif_file)
-    structure = structure * supercell
+    structure = structure * supercell # replicate the unit cell twice in the x, y, and z directions to avoid self-interaction errors
 
-    positions = structure.cart_coords
-    species = [str(s) for s in structure.species]
+    positions = structure.cart_coords # extract cartesian coords
+    
+    # Find unique species and sort them by electronegativity
+    unique_species = sorted(list(set(structure.species)), key=lambda x: x.X)
 
-    # Map atom types (1=cation, 2=anion)
-    atom_types = []
-    for s in species:
-        if s == "Na+":   # example cation
-            atom_types.append(1)
-        elif s == "Cl-": # example anion
-            atom_types.append(2)
-        else:
-            raise ValueError(f"Unknown species {s}")
+    type_map = {spec.symbol: (i + 1) for i, spec in enumerate(unique_species)}
+    atom_types = [type_map[s.symbol] for s in structure.species]
 
-    return np.array(positions), np.array(atom_types), species
+    return np.array(positions), np.array(atom_types), type_map
